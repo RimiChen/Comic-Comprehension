@@ -31,15 +31,26 @@ class FeatureCombiner:
         panel_entityFeatureList = {}
         
         # for targetEntity in entityList:
-
+        # TODO  don't return, for memory concern
         for featureName in featureList:
             if featureName == "VisualizedBy":
                 scope = "All"
                 print("SYSTEM Action: get image features")
                 # retrieveFeatures(self, featureLabel, entityList, direction)
-                panel_ImageFeatureList = knowledgeGraph.retrieveFeatures(featureName, entityList, "Out")
-                panel_entityFeatureList  = self.mergeFeatureList(panel_entityFeatureList , panel_ImageFeatureList)
-                
+                for subEntity in entityList:
+                    subEntityList = [subEntity]
+                    # panel image feature = panel_ImageFeatureList[panelVectorName]["VisualizedBy"]
+                    panel_ImageFeatureList = knowledgeGraph.retrieveFeatures(featureName, subEntityList, "Out")
+                    for panelVectorName in panel_ImageFeatureList:
+                        panelImageFeature = panel_ImageFeatureList[panelVectorName]["VisualizedBy"]                    
+                    
+
+                    # Debug
+                    # print(panelImageFeature.shape)
+                    # print(panel_ImageFeatureList.keys())
+                    # for panelVectorName in panel_ImageFeatureList:
+                    #     print(panel_ImageFeatureList[panelVectorName]["VisualizedBy"].shape)
+
                 # print(panel_entityFeatureList.keys())
 
 
@@ -51,6 +62,9 @@ class FeatureCombiner:
                 print("SYSTEM Action: get panel features")
 
         # intra-panel level
+    
+    # return []
+    
     def mergeFeatureList(self, featureList_1, featureList_2):
         mergedList = featureList_1
 
