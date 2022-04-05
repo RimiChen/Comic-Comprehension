@@ -1,16 +1,35 @@
 # import queue
 import math
+import sys, os
+
+from FeatureCombiner import *
+
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'Knowledge_from_comics'))
+from PreProcesser import *
+from KnowledgeGraphConstructer import * 
+# from KnowledgeGraph import *
+
+
+# from  Knowledge.KnowledgeGraphConstructer import *
 
 # parameters
 IS_PAGE = True
 IS_FEATURE_ANALYSIS = True
 IS_VISUAL_WEIGHT = True
 IS_FEATURE_LAYOUT = True
-
+FILTER_LIST = [
+    "Text",
+    "VisualizedBy",
+    "Panel"
+]
 
 class ComprehensionProcess:
     def __init__(self, isPage):
         self.isPage = isPage
+        self.featureCombiner = FeatureCombiner()
+
+
 
     def testProcess(self):
         print("SYSTEM: Launch the comprehension process!")
@@ -31,10 +50,27 @@ class ComprehensionProcess:
         # parse testing cases
         print("SYSTEM: generating test cases from dataset")
 
-    def filter(self, filterList):
+        pre_processer = PreProcesser(DATASET_PATH, PRE_IS_BOOK_IN_FOLDERS, PRE_CUSTOM_BOOK_CHUCK, PRE_IS_IMAGES_IN_SEQUENCE, PRE_CUSTOM_SEQUENCE_PANEL, PRE_IS_PANEL_CROPPED, PRE_DEFAULT_ORDERS, PRE_ORDERED_METHOD)
+        # pre_processer.printDetailInPath()
+        [imagePath, annotationPath] = pre_processer.preprocessData()
+        print("TEST: ", imagePath, " , ", annotationPath)
+
+        return [imagePath, annotationPath]
+
+    def filter(self, filterList, imagePath, annotationPath):
+        # select and combine as the model required form
         print("SYSTEM: select feature types according to list.")
         print("SYSTEM: check the feature model exist, if so request as asked")
         # print("SYSTEM: pass the feature model to the LSTM model and retrieve features from the models to describe new panels")
+
+        # featureCombiner = featureCombiner()    
+        
+        knowledgeGraphConstructer = KnowledgeGraphConstructer()
+        knowledgeGraph = knowledgeGraphConstructer.constructKnowledgeGraph(imagePath, annotationPath)
+
+        self.featureCombiner.combineFeatures(knowledgeGraph, FILTER_LIST)
+        # out hdf5 and finish the preprocessing part of hierachical LSTM
+
 
     def model(self):
         print("SYSTEM: pass the feature model to the LSTM model and retrieve features from the models to describe new panels")
@@ -51,7 +87,7 @@ if __name__ == "__main__":
     # initial the tool and interface
     comprehension_process = ComprehensionProcess(IS_PAGE)
     comprehension_process.testProcess()
-    comprehension_process.initialProcess()  
-    comprehension_process.filter()  
+    [imagePath, annotationPath] = comprehension_process.initialProcess()  
+    comprehension_process.filter(FILTER_LIST, imagePath, annotationPath)  
     comprehension_process.model()  
     comprehension_process.evaluation()    
