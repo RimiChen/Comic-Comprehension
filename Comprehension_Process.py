@@ -1,6 +1,22 @@
 # import queue
+from asyncio.windows_events import NULL
 import math
 import sys, os
+
+
+from ctypes import sizeof
+from tensorflow.python.keras.preprocessing import image
+from tensorflow.python.keras.models import Model
+from tensorflow.python.keras.applications.vgg16 import VGG16
+from tensorflow.python.keras.applications.vgg16 import preprocess_input
+import numpy as np
+import random
+import math
+import os
+import h5py
+import json
+import sklearn
+import sklearn.preprocessing
 
 from FeatureCombiner import *
 
@@ -8,6 +24,7 @@ from FeatureCombiner import *
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'Knowledge_from_comics'))
 from PreProcesser import *
 from KnowledgeGraphConstructer import * 
+from FeatureFuns import *
 # from KnowledgeGraph import *
 
 
@@ -18,11 +35,20 @@ IS_PAGE = True
 IS_FEATURE_ANALYSIS = True
 IS_VISUAL_WEIGHT = True
 IS_FEATURE_LAYOUT = True
-FILTER_LIST = [
-    "Text",
-    "VisualizedBy",
-    "Panel"
-]
+
+# hf = h5py.File(H5_FILE_NAME+'.h5', 'w')
+IMAGE_FEATURE_MODEL_FORMAT = ".h5"
+IMAGE_FEATURE_MODEL_PATH = "VisualizedBy_manga_image" + IMAGE_FEATURE_MODEL_FORMAT
+
+TEXT_FEATURE_MODEL_FORMAT = ".h5"
+TEXT_FEATURE_MODLE_PAHT = "VisualizedBy_manga_image" + IMAGE_FEATURE_MODEL_FORMAT
+
+# if feature is too large, then save outside
+FILTER_LIST = {
+    "Text": NULL,
+    "VisualizedBy": IMAGE_FEATURE_MODEL_PATH,
+    "Panel": NULL
+}
 
 class ComprehensionProcess:
     def __init__(self, isPage):
@@ -57,7 +83,7 @@ class ComprehensionProcess:
 
         return [imagePath, annotationPath]
 
-    def filter(self, filterList, imagePath, annotationPath):
+    def filter(self, filterList, imagePath, annotationPath, featureFuns):
         # select and combine as the model required form
         print("SYSTEM: select feature types according to list.")
         print("SYSTEM: check the feature model exist, if so request as asked")
@@ -65,11 +91,12 @@ class ComprehensionProcess:
 
         # featureCombiner = featureCombiner()    
         
-        knowledgeGraphConstructer = KnowledgeGraphConstructer()
+        knowledgeGraphConstructer = KnowledgeGraphConstructer(featureFuns)
         knowledgeGraph = knowledgeGraphConstructer.constructKnowledgeGraph(imagePath, annotationPath)
 
-        self.featureCombiner.combineFeatures(knowledgeGraph, FILTER_LIST)
         # out hdf5 and finish the preprocessing part of hierachical LSTM
+        featurePreTrainedModel = IMAGE_FEATURE_MODEL_PATH
+        self.featureCombiner.combineFeatures(knowledgeGraph, FILTER_LIST, True)
 
 
     def model(self):
@@ -88,6 +115,22 @@ if __name__ == "__main__":
     comprehension_process = ComprehensionProcess(IS_PAGE)
     comprehension_process.testProcess()
     [imagePath, annotationPath] = comprehension_process.initialProcess()  
-    comprehension_process.filter(FILTER_LIST, imagePath, annotationPath)  
+ 
+    
+    # alter the image feature model here
+    imagePretrainModel = VGG16(weights='imagenet', include_top=True, pooling='avg')
+    # print(type(model))
+    #### we want fc layer
+    imagePretrainModel.layers.pop()
+    imageFeatureModel = Model(imagePretrainModel.input, imagePretrainModel.layers[-1].output)   
+    encoderList = {
+        "VisualizedBy": imageFeatureModel,
+        "Text": NULL,
+        "Panel": NULL
+    }   
+
+    featureFuns = FeatureFuns(encoderList)    
+    comprehension_process.filter(FILTER_LIST, imagePath, annotationPath, featureFuns)  
+
     comprehension_process.model()  
     comprehension_process.evaluation()    
