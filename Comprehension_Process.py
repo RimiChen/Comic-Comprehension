@@ -41,12 +41,16 @@ IMAGE_FEATURE_MODEL_FORMAT = ".h5"
 IMAGE_FEATURE_MODEL_PATH = "VisualizedBy_manga_image" + IMAGE_FEATURE_MODEL_FORMAT
 
 TEXT_FEATURE_MODEL_FORMAT = ".h5"
-TEXT_FEATURE_MODLE_PAHT = "VisualizedBy_manga_image" + IMAGE_FEATURE_MODEL_FORMAT
+TEXT_FEATURE_MODLE_PATH = "VisualizedBy_manga_text" + TEXT_FEATURE_MODEL_FORMAT
+
+
 
 # if feature is too large, then save outside
 FILTER_LIST = {
-    "Text": NULL,
-    "VisualizedBy": IMAGE_FEATURE_MODEL_PATH,
+    "Contain": {
+        "TextlizedBy": TEXT_FEATURE_MODLE_PATH
+    },
+    # "VisualizedBy": IMAGE_FEATURE_MODEL_PATH,
     "Panel": NULL
 }
 
@@ -78,12 +82,12 @@ class ComprehensionProcess:
 
         pre_processer = PreProcesser(DATASET_PATH, PRE_IS_BOOK_IN_FOLDERS, PRE_CUSTOM_BOOK_CHUCK, PRE_IS_IMAGES_IN_SEQUENCE, PRE_CUSTOM_SEQUENCE_PANEL, PRE_IS_PANEL_CROPPED, PRE_DEFAULT_ORDERS, PRE_ORDERED_METHOD)
         # pre_processer.printDetailInPath()
-        [imagePath, annotationPath] = pre_processer.preprocessData()
+        [imagePath, annotationPath, ocrTextPath] = pre_processer.preprocessData()
         print("TEST: ", imagePath, " , ", annotationPath)
 
-        return [imagePath, annotationPath]
+        return [imagePath, annotationPath, ocrTextPath]
 
-    def filter(self, filterList, imagePath, annotationPath, featureFuns):
+    def filter(self, filterList, imagePath, annotationPath, ocrTextPath, featureFuns):
         # select and combine as the model required form
         print("SYSTEM: select feature types according to list.")
         print("SYSTEM: check the feature model exist, if so request as asked")
@@ -92,7 +96,7 @@ class ComprehensionProcess:
         # featureCombiner = featureCombiner()    
         
         knowledgeGraphConstructer = KnowledgeGraphConstructer(featureFuns)
-        knowledgeGraph = knowledgeGraphConstructer.constructKnowledgeGraph(imagePath, annotationPath)
+        knowledgeGraph = knowledgeGraphConstructer.constructKnowledgeGraph(imagePath, annotationPath, ocrTextPath)
 
         # out hdf5 and finish the preprocessing part of hierachical LSTM
         featurePreTrainedModel = IMAGE_FEATURE_MODEL_PATH
@@ -114,7 +118,7 @@ if __name__ == "__main__":
     # initial the tool and interface
     comprehension_process = ComprehensionProcess(IS_PAGE)
     comprehension_process.testProcess()
-    [imagePath, annotationPath] = comprehension_process.initialProcess()  
+    [imagePath, annotationPath, ocrTextPath] = comprehension_process.initialProcess()  
  
     
     # alter the image feature model here
@@ -125,12 +129,12 @@ if __name__ == "__main__":
     imageFeatureModel = Model(imagePretrainModel.input, imagePretrainModel.layers[-1].output)   
     encoderList = {
         "VisualizedBy": imageFeatureModel,
-        "Text": NULL,
+        "Contain": NULL,
         "Panel": NULL
     }   
 
     featureFuns = FeatureFuns(encoderList)    
-    comprehension_process.filter(FILTER_LIST, imagePath, annotationPath, featureFuns)  
+    comprehension_process.filter(FILTER_LIST, imagePath, annotationPath, ocrTextPath, featureFuns)  
 
     comprehension_process.model()  
     comprehension_process.evaluation()    

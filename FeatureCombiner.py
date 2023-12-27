@@ -25,6 +25,11 @@ DEV_SPLIT = 1
 TEST_SPLIT = 3
 TOTAL_SPLIT = TRAIN_SPLIT + TEST_SPLIT + DEV_SPLIT
 
+PANEL_IMAGE_RELATION = "VisualizedBy"
+TEXT_RELATION = "TextlizedBy" 
+PATH_RELATION = "Locate" 
+FEATURE_DESCRIBE_RELATION = "DescribedBy" 
+
 
 
 class FeatureCombiner:
@@ -177,13 +182,70 @@ class FeatureCombiner:
                     imageFeatureModel.close()
 
 
-                elif featureName == "Text":
-                    print("SYSTEM Action: get text features")
+                # intra-panel level
+                elif featureName == "Contain":
+                    print("SYSTEM Action: get intra-panel features")
+                    
+                    trainTextFeatures = []
+                    testTextFeatures = []
+                    devTextFeatures = []
+                    
+                    # TODO better structure for store text model (intra-panel has many different things)
+                    textFeatureModel = featureList[featureName]
+                    textFeatureModel = h5py.File(featureList[featureName]["TextlizedBy"], 'w')
+
+
+                    for subEntity in entityList:
+                        subEntityList = [subEntity]
+                        # panel image feature = panel_ImageFeatureList[panelVectorName]["VisualizedBy"]
+                        panel_FeatureList = knowledgeGraph.retrieveFeatures(featureName, subEntityList, "Out")
+                        print(json.dumps(panel_FeatureList, indent = 4))
+                        # for panelVectorName in panel_FeatureList:
+
+                        #     # VGG feature for each image
+                        #     panelTextboxFeature = panel_ImageFeatureList[panelVectorName]["VisualizedBy"]
+
+                        #     processedImageFeature = self.processFeature(panelImageFeature)
+
+
+                        #     seuqenceID = self.getSequenceIDFromPanel(panelVectorName)
+                        #     if typeTable[seuqenceID][0] == "Train":
+                        #         # print("---panel: ", panelVectorName, " , belongs to seuqence: ", seuqenceID, " set: Train")
+                        #         trainImageFeatures.append(processedImageFeature)
+                        #     elif typeTable[seuqenceID][0] == "Dev":
+                        #         # print("---panel: ", panelVectorName, " , belongs to seuqence: ", seuqenceID, " set: Dev")
+                        #         devImageFeatures.append(processedImageFeature)
+                        #     elif typeTable[seuqenceID][0] == "Test":
+                        #         # print("---panel: ", panelVectorName, " , belongs to seuqence: ", seuqenceID, " set: Test")
+                        #         testImageFeatures.append(processedImageFeature)
+                        #     # print("----Belong to ", seuqenceID, " seuqence")
+
+
+                        
+
+
+                        # Debug
+                        # print(panelImageFeature.shape)
+                        # print(panel_ImageFeatureList.keys())
+                        # for panelVectorName in panel_ImageFeatureList:
+                        #     print(panel_ImageFeatureList[panelVectorName]["VisualizedBy"].shape)
+
+                    # print(panel_entityFeatureList.keys())
+                    imageArrayTrain = np.array(trainImageFeatures)
+                    imageArrayDev = np.array(devImageFeatures)
+                    imageArrayTest = np.array(testImageFeatures)
+                    
+                    imageFeatureModel.create_dataset("train/vgg_features",data = imageArrayTrain)
+                    imageFeatureModel.create_dataset("dev/vgg_features",data = imageArrayDev)
+                    imageFeatureModel.create_dataset("test/vgg_features",data = imageArrayTest)    
+                    
+                    imageFeatureModel.close()
+
 
                 elif featureName == "Panel":
                     print("SYSTEM Action: get panel features")
 
-            # intra-panel level
+
 
 
         else:
